@@ -24,6 +24,7 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 BATCH_SIZE = int(os.environ.get('BATCH_SIZE', 100))  # Products per run
 SCRAPE_INTERVAL = int(os.environ.get('SCRAPE_INTERVAL', 30))  # Minutes between runs
 AUTO_START = os.environ.get('AUTO_START', 'true').lower() == 'true'
+PROXY_URL = os.environ.get('PROXY_URL', '')  # e.g., http://user:pass@proxy.example.com:8080
 
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -65,6 +66,13 @@ class NisbetsScraper:
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'en-GB,en;q=0.9',
         })
+        # Add proxy if configured
+        if PROXY_URL:
+            self.scraper.proxies = {
+                'http': PROXY_URL,
+                'https': PROXY_URL
+            }
+            print(f"Using proxy: {PROXY_URL[:30]}...")
 
     def random_delay(self, min_sec=1, max_sec=3):
         time.sleep(random.uniform(min_sec, max_sec))
