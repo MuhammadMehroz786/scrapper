@@ -15,7 +15,7 @@ from urllib.parse import urljoin
 
 import cloudscraper
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string, Response
 from apscheduler.schedulers.background import BackgroundScheduler
 
 # Configuration
@@ -492,6 +492,11 @@ DASHBOARD_HTML = '''
                 Start Product Scraper
             </button>
         </form>
+        <a href="/products" download="nisbets_products.json" style="text-decoration: none;">
+            <button type="button" class="btn-primary" style="background: #388e3c;">
+                Download Products JSON
+            </button>
+        </a>
     </div>
 
     <p>Last run: {{ status.last_run or 'Never' }}</p>
@@ -533,7 +538,12 @@ def get_products():
     output_file = os.path.join(DATA_DIR, 'products.json')
     if os.path.exists(output_file):
         with open(output_file, 'r') as f:
-            return jsonify(json.load(f))
+            data = f.read()
+        return Response(
+            data,
+            mimetype='application/json',
+            headers={'Content-Disposition': 'attachment; filename=nisbets_products.json'}
+        )
     return jsonify({'products': []})
 
 @app.route('/health')
