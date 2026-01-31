@@ -177,7 +177,7 @@ class NisbetsScraper:
                             })
             product['images'] = images[:10]
 
-            # Variant
+            # Variant - UK pricing
             product['variants'].append({
                 'title': 'Default',
                 'price': price or '0.00',
@@ -185,11 +185,30 @@ class NisbetsScraper:
                 'inventory_management': 'shopify',
                 'inventory_policy': 'deny',
                 'requires_shipping': True,
-                'taxable': True
+                'taxable': True,
+                'weight_unit': 'kg',
+                'currency': 'GBP'
             })
 
-            # Tags
+            # Add UK-specific metafields
+            product['metafields'].append({
+                'namespace': 'product',
+                'key': 'currency',
+                'value': 'GBP',
+                'type': 'single_line_text_field'
+            })
+            product['metafields'].append({
+                'namespace': 'product',
+                'key': 'country_of_origin',
+                'value': 'United Kingdom',
+                'type': 'single_line_text_field'
+            })
+
+            # Tags - include UK source
             product['tags'].append(f"SKU:{product['source_sku']}")
+            product['tags'].append('UK')
+            product['tags'].append('Nisbets UK')
+            product['tags'].append('GBP')
 
         except Exception as e:
             pass
