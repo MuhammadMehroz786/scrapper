@@ -20,8 +20,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 # Configuration
 DATA_DIR = os.environ.get('DATA_DIR', '/app/data')
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
 BATCH_SIZE = int(os.environ.get('BATCH_SIZE', 100))  # Products per run
 SCRAPE_INTERVAL = int(os.environ.get('SCRAPE_INTERVAL', 30))  # Minutes between runs
+AUTO_START = os.environ.get('AUTO_START', 'true').lower() == 'true'
 
 # Ensure data directory exists
 os.makedirs(DATA_DIR, exist_ok=True)
@@ -216,9 +218,17 @@ class NisbetsScraper:
         return product
 
     def load_urls(self):
+        # Check data directory first
         if os.path.exists(self.urls_file):
             with open(self.urls_file, 'r') as f:
                 return [line.strip() for line in f if line.strip()]
+
+        # Check bundled URLs file in app directory
+        bundled_file = os.path.join(APP_DIR, 'product_urls.txt')
+        if os.path.exists(bundled_file):
+            with open(bundled_file, 'r') as f:
+                return [line.strip() for line in f if line.strip()]
+
         return []
 
     def load_progress(self):
@@ -531,10 +541,25 @@ def health():
     return jsonify({'status': 'healthy'})
 
 
+def auto_start_scraping():
+    """Auto-start scraping after a short delay to let the app initialize"""
+    time.sleep(5)  # Wait for app to start
+    urls = product_scraper.load_urls()
+    if urls and AUTO_START:
+        print(f"Auto-starting scraper with {len(urls)} URLs...")
+        scraper_status['total_urls'] = len(urls)
+        product_scraper.run_batch(BATCH_SIZE)
+
+
 if __name__ == '__main__':
-    # Start scheduler
+    # Start scheduler for continuous scraping
     scheduler.add_job(scheduled_scrape, 'interval', minutes=SCRAPE_INTERVAL)
     scheduler.start()
+
+    # Auto-start scraping in background
+    if AUTO_START:
+        startup_thread = threading.Thread(target=auto_start_scraping, daemon=True)
+        startup_thread.start()
 
     # Run Flask
     port = int(os.environ.get('PORT', 5000))
