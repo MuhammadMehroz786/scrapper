@@ -543,7 +543,7 @@ def health():
 
 def auto_start_scraping():
     """Auto-start scraping after a short delay to let the app initialize"""
-    time.sleep(5)  # Wait for app to start
+    time.sleep(10)  # Wait for app to fully start
     urls = product_scraper.load_urls()
     if urls and AUTO_START:
         print(f"Auto-starting scraper with {len(urls)} URLs...")
@@ -551,16 +551,18 @@ def auto_start_scraping():
         product_scraper.run_batch(BATCH_SIZE)
 
 
+# Start scheduler for continuous scraping (runs for both gunicorn and direct)
+scheduler.add_job(scheduled_scrape, 'interval', minutes=SCRAPE_INTERVAL)
+scheduler.start()
+
+# Auto-start scraping in background thread
+if AUTO_START:
+    startup_thread = threading.Thread(target=auto_start_scraping, daemon=True)
+    startup_thread.start()
+    print("Auto-start thread launched...")
+
+
 if __name__ == '__main__':
-    # Start scheduler for continuous scraping
-    scheduler.add_job(scheduled_scrape, 'interval', minutes=SCRAPE_INTERVAL)
-    scheduler.start()
-
-    # Auto-start scraping in background
-    if AUTO_START:
-        startup_thread = threading.Thread(target=auto_start_scraping, daemon=True)
-        startup_thread.start()
-
-    # Run Flask
+    # Run Flask (only for local testing)
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
